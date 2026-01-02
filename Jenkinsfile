@@ -5,8 +5,8 @@ pipeline {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
         
         // Image names
-        BACKEND_IMAGE = 'yourusername/smart-code-review-backend:latest'
-        FRONTEND_IMAGE = 'yourusername/smart-code-review-frontend:latest'
+        BACKEND_IMAGE = 'tassnime850/smart-code-review-backend:latest'
+        FRONTEND_IMAGE = 'tassnime850/smart-code-review-frontend:latest'
         
         // Trivy severity thresholds
         TRIVY_SEVERITY = 'HIGH,CRITICAL'
