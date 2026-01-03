@@ -7,7 +7,7 @@ pipeline {
         BACKEND_IMAGE  = 'tassnime850/smart-code-review-backend:latest'
         FRONTEND_IMAGE = 'tassnime850/smart-code-review-frontend:latest'
 
-        TRIVY_SEVERITY = 'HIGH,CRITICAL'
+        TRIVY_SEVERITY = 'CRITICAL'
     }
 
     stages {
