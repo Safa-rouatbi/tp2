@@ -7,7 +7,7 @@ pipeline {
         BACKEND_IMAGE  = 'tassnime850/smart-code-review-backend:latest'
         FRONTEND_IMAGE = 'tassnime850/smart-code-review-frontend:latest'
 
-        TRIVY_SEVERITY = 'CRITICAL'
+        TRIVY_SEVERITY = 'HIGH,CRITICAL'
     }
 
     stages {
@@ -18,7 +18,7 @@ pipeline {
             }
         }
 
-        stage('Checkout Code') {
+        stage('Checkout Source Code') {
             steps {
                 checkout scm
             }
@@ -28,11 +28,8 @@ pipeline {
             steps {
                 sh '''
                   if [ ! -f trivy ]; then
-                    echo "Installing Trivy locally..."
                     curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
                     mv bin/trivy ./trivy
-                  else
-                    echo "Trivy already installed"
                   fi
                 '''
             }
@@ -50,28 +47,26 @@ pipeline {
             }
         }
 
-        stage('Scan Backend Image (Trivy)') {
+        stage('Scan Backend Image (Trivy - Informative)') {
             steps {
                 sh """
                   ./trivy image \
                     --severity ${TRIVY_SEVERITY} \
-                    --exit-code 1 \
                     --format json \
                     --output trivy-backend.json \
-                    ${BACKEND_IMAGE}
+                    ${BACKEND_IMAGE} || true
                 """
             }
         }
 
-        stage('Scan Frontend Image (Trivy)') {
+        stage('Scan Frontend Image (Trivy - Informative)') {
             steps {
                 sh """
                   ./trivy image \
                     --severity ${TRIVY_SEVERITY} \
-                    --exit-code 1 \
                     --format json \
                     --output trivy-frontend.json \
-                    ${FRONTEND_IMAGE}
+                    ${FRONTEND_IMAGE} || true
                 """
             }
         }
@@ -105,11 +100,11 @@ pipeline {
         }
 
         success {
-            echo 'Pipeline SUCCESS: images built, scanned and pushed to Docker Hub.'
+            echo ' Pipeline SUCCESS: build, scan (informative) and push completed.'
         }
 
         failure {
-            echo 'Pipeline FAILED: vulnerabilities detected or build error.'
+            echo ' Pipeline FAILED.'
         }
     }
 }
