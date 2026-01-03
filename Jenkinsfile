@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_CREDS = credentials('docker-hub-credentials')
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
 
         BACKEND_IMAGE  = 'tassnime850/smart-code-review-backend:latest'
         FRONTEND_IMAGE = 'tassnime850/smart-code-review-frontend:latest'
@@ -12,38 +12,48 @@ pipeline {
 
     stages {
 
-
-        stage('Checkout') {
+        stage('Clean Workspace') {
             steps {
                 cleanWs()
-                checkout scm
             }
         }
 
-        stage('Build Images') {
+        stage('Checkout Code') {
             steps {
-                sh """
-                  docker build -t ${BACKEND_IMAGE} Backend/.
-                  docker build -t ${FRONTEND_IMAGE} frontend/.
-                """
+                checkout scm
             }
         }
 
         stage('Install Trivy') {
             steps {
                 sh '''
-                  if ! command -v trivy >/dev/null 2>&1; then
+                  if [ ! -f trivy ]; then
+                    echo "Installing Trivy locally..."
                     curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
-                    sudo mv ./bin/trivy /usr/local/bin/
+                    mv bin/trivy ./trivy
+                  else
+                    echo "Trivy already installed"
                   fi
                 '''
             }
         }
 
-        stage('Scan Backend Image') {
+        stage('Build Backend Image') {
+            steps {
+                sh "docker build -t ${BACKEND_IMAGE} Backend"
+            }
+        }
+
+        stage('Build Frontend Image') {
+            steps {
+                sh "docker build -t ${FRONTEND_IMAGE} frontend"
+            }
+        }
+
+        stage('Scan Backend Image (Trivy)') {
             steps {
                 sh """
-                  trivy image \
+                  ./trivy image \
                     --severity ${TRIVY_SEVERITY} \
                     --exit-code 1 \
                     --format json \
@@ -53,11 +63,10 @@ pipeline {
             }
         }
 
- 
-        stage('Scan Frontend Image') {
+        stage('Scan Frontend Image (Trivy)') {
             steps {
                 sh """
-                  trivy image \
+                  ./trivy image \
                     --severity ${TRIVY_SEVERITY} \
                     --exit-code 1 \
                     --format json \
@@ -67,22 +76,25 @@ pipeline {
             }
         }
 
-
-        stage('Docker Login') {
+        stage('Docker Hub Login') {
             steps {
                 sh '''
-                  echo $DOCKER_HUB_CREDS_PSW | docker login \
-                  -u $DOCKER_HUB_CREDS_USR --password-stdin
+                  echo "$DOCKER_HUB_CREDENTIALS_PSW" | docker login \
+                    -u "$DOCKER_HUB_CREDENTIALS_USR" \
+                    --password-stdin
                 '''
             }
         }
 
-        stage('Push Images to Docker Hub') {
+        stage('Push Backend Image') {
             steps {
-                sh """
-                  docker push ${BACKEND_IMAGE}
-                  docker push ${FRONTEND_IMAGE}
-                """
+                sh "docker push ${BACKEND_IMAGE}"
+            }
+        }
+
+        stage('Push Frontend Image') {
+            steps {
+                sh "docker push ${FRONTEND_IMAGE}"
             }
         }
     }
@@ -91,11 +103,13 @@ pipeline {
         always {
             archiveArtifacts artifacts: 'trivy-*.json', allowEmptyArchive: true
         }
+
         success {
-            echo ' Build, Scan OK, Images pushed to Docker Hub'
+            echo 'Pipeline SUCCESS: images built, scanned and pushed to Docker Hub.'
         }
+
         failure {
-            echo ' Pipeline failed due to vulnerabilities'
+            echo 'Pipeline FAILED: vulnerabilities detected or build error.'
         }
     }
 }
