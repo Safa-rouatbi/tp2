@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/database'); 
+const { metricsMiddleware, metricsHandler } = require('./middlewares/metricsMiddleware');
 require('dotenv').config();
 
 const app = express();
@@ -8,6 +9,13 @@ const app = express();
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// Middleware de métriques Prometheus
+app.use(metricsMiddleware);
+
+// Endpoint de métriques pour Prometheus
+app.get('/metrics', metricsHandler);
+
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));

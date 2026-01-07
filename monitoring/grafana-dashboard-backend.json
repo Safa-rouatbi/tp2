@@ -1,0 +1,239 @@
+{
+  "dashboard": {
+    "title": "Backend Application Monitoring",
+    "tags": ["backend", "nodejs", "smart-code-review"],
+    "timezone": "browser",
+    "editable": true,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Requêtes HTTP par Seconde",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Requêtes/sec"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Requêtes Actives",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "http_requests_active"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 100
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Durée des Requêtes (95e percentile)",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{route}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Secondes"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Utilisation Mémoire",
+        "type": "gauge",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes",
+            "min": 0,
+            "max": 1024,
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "yellow",
+                  "value": 500
+                },
+                {
+                  "color": "red",
+                  "value": 800
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Requêtes par Méthode HTTP",
+        "type": "piechart",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total[5m])) by (method)",
+            "legendFormat": "{{method}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Taux d'Erreur (Status 5xx)",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[5m]))",
+            "legendFormat": "Erreurs 5xx"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [0.05],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "name": "Taux d'erreur élevé"
+        }
+      },
+      {
+        "id": 7,
+        "title": "Utilisation CPU",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        },
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "CPU %"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent",
+            "label": "CPU"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Top 5 Routes par Volume",
+        "type": "table",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        },
+        "targets": [
+          {
+            "expr": "topk(5, sum(rate(http_requests_total[5m])) by (route))",
+            "format": "table",
+            "instant": true
+          }
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+    }
+  }
+}
